@@ -12,30 +12,40 @@ window_width = 640
 window_height = 480
 
 # TODO Implement the function get_frequencies(image):
+def get_frequencies(image):
 # Convert image to floats and do dft saving as complex output
+    print(image.dtype)
+    image_32F = np.float32(image)
+    freg = cv2.dft(image_32F)
 
 # Apply shift of origin from upper left corner to center of image
-
+    dft_shift = np.fft.fftshift(freg)
 # Extract magnitude and phase images
-
+    mag, phase = cv2.cartToPolar(dft_shift[:,:,0], dft_shift[:,:,1])
 # Get spectrum for viewing only
-
-# Return the resulting image (as well as the magnitude and phase for the inverse)
-
+    spec = np.log(mag) 
+    norm_spec = cv2.normalize(spec, spec, 0, 1.0, cv2.NORM_MINMAX)
+    # Return the resulting image (as well as the magnitude and phase for the inverse)
+    return norm_spec, mag, phase
 # TODO Implement the function create_from_spectrum():
+def create_from_spectrum(mag, phase): 
+
 # Convert magnitude and phase into cartesian real and imaginary components
-
+    real, imag = cv2.polarToCart(mag, phase)
 # Combine cartesian components into one complex image
-
+    back = cv2.merge([real, imag])
 # Shift origin from center to upper left corner
-
+    back_ishift = np.fft.ifftshift(back)
 # Do idft saving as complex output
-
+    img_back = cv2.idft(back_ishift)
 # Combine complex components into original image again
+    img_back = cv2.magnitude(img_back[:,:,0], img_back[:,:,1])
 
 # Re-normalize to 8-bits
-
-
+    min, max = np.amin(img_back, (0,1)), np.amax(img_back, (0,1))
+    print(min,max)
+    img_back = cv2.normalize(img_back, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    return img_back
 # We use a main function this time: see https://realpython.com/python-main-function/ why it makes sense
 def main():
     # Load an image, compute frequency domain image from it and display both or vice versa
@@ -52,8 +62,12 @@ def main():
     cv2.resizeWindow(title_original, window_width, window_height)
     cv2.imshow(title_original, image)
 
-    # result = get_frequencies(image)
-    result = np.zeros((window_height, window_width), np.uint8)
+    result, mag, phase = get_frequencies(image)
+    #result = np.zeros((window_height, window_width), np.uint8)
+
+    #manipulate the frequency data
+    mag[40:60,300]
+
 
     # Show the resulting image
     # Note that window parameters have no effect on MacOS
@@ -62,8 +76,8 @@ def main():
     cv2.resizeWindow(title_result, window_width, window_height)
     cv2.imshow(title_result, result)
 
-    # back = create_from_spectrum(??)
-    back = np.zeros((window_height, window_width), np.uint8)
+    back = create_from_spectrum(mag, phase)
+    #back = np.zeros((window_height, window_width), np.uint8)
 
     # And compute image back from frequencies
     # Note that window parameters have no effect on MacOS
